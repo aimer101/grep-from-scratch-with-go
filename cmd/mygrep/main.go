@@ -25,6 +25,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: read input text: %v\n", err)
 		os.Exit(2)
 	}
+	fmt.Println(pattern)
 
 	ok, err := matchLine(line, pattern)
 	if err != nil {
@@ -37,6 +38,8 @@ func main() {
 	}
 
 	// default exit code is 0 which means success
+	os.Exit(0)
+
 }
 
 func matchLine(line []byte, pattern string) (bool, error) {
