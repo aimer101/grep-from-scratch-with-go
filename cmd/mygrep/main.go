@@ -46,6 +46,8 @@ func nextToken(pattern *string) string {
 		return (*pattern)[0:2]
 	case '^':
 		return (*pattern)[0:1]
+	case '$':
+		return (*pattern)[0:1]
 	case '[':
 		k := 1
 
@@ -64,15 +66,18 @@ func match(line []byte, pattern string) bool {
 	if len(pattern) == 0 {
 		return true
 	}
-	if len(line) == 0 {
-		return false
-	}
 
 	token := nextToken(&pattern)
+
+	if len(line) == 0 && token != "$" {
+		return false
+	}
 
 	var matched bool
 
 	switch token {
+	case "$":
+		return len(line) == 0
 	case "\\d":
 		if bytes.ContainsAny(line[0:1], "0123456789") {
 			matched = true
