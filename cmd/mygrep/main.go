@@ -44,6 +44,8 @@ func nextToken(pattern *string) string {
 	switch (*pattern)[0] {
 	case '\\':
 		return (*pattern)[0:2]
+	case '^':
+		return (*pattern)[0:1]
 	case '[':
 		k := 1
 
@@ -105,6 +107,10 @@ func match(line []byte, pattern string) bool {
 }
 
 func matchLine(line []byte, pattern string) (bool, error) {
+
+	if nextToken(&pattern) == "^" {
+		return match(line, pattern[1:]), nil
+	}
 
 	for i := 0; i < len(line); i++ {
 		if match(line[i:], pattern) {
