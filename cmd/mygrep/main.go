@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"unicode/utf8"
 )
 
 // Ensures gofmt doesn't remove the "bytes" import above (feel free to remove this!)
@@ -41,31 +40,77 @@ func main() {
 
 }
 
-func matchLine(line []byte, pattern string) (bool, error) {
-	if utf8.RuneCountInString(pattern) == 0 {
-		return false, fmt.Errorf("unsupported pattern: %q", pattern)
-	}
+func nextToken(pattern *string) string {
+	switch (*pattern)[0] {
+	case '\\':
+		return (*pattern)[0:2]
+	case '[':
+		k := 1
 
-	var ok bool
-
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-
-	if pattern == "\\d" {
-		ok = bytes.ContainsAny(line, "0123456789")
-	} else if pattern == "\\w" {
-		ok = bytes.ContainsAny(line, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-
-	} else if pattern[0] == '[' && pattern[len(pattern)-1] == ']' {
-		if pattern[1] == '^' {
-			ok = !bytes.ContainsAny(line, pattern[2:len(pattern)-1])
-		} else {
-			ok = bytes.ContainsAny(line, pattern[1:len(pattern)-1])
+		for (*pattern)[k] != ']' {
+			k += 1
 		}
-	} else {
-		// Uncomment this to pass the first stage
-		ok = bytes.ContainsAny(line, pattern)
+
+		return (*pattern)[0 : k+1]
+	default:
+		return (*pattern)[0:1]
 	}
 
-	return ok, nil
+}
+
+func match(line []byte, pattern string) bool {
+	if len(pattern) == 0 {
+		return true
+	}
+	if len(line) == 0 {
+		return false
+	}
+
+	token := nextToken(&pattern)
+
+	var matched bool
+
+	switch token {
+	case "\\d":
+		if bytes.ContainsAny(line[0:1], "0123456789") {
+			matched = true
+		}
+	case "\\w":
+		if bytes.ContainsAny(line[0:1], "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") {
+			matched = true
+		}
+	default:
+		if token[0] == '[' {
+			if token[1] == '^' {
+				if !bytes.ContainsAny(line[0:1], token[2:len(token)-1]) {
+					matched = true
+				}
+
+			} else {
+				if bytes.ContainsAny(line[0:1], token[1:len(token)-1]) {
+					matched = true
+				}
+			}
+
+		} else {
+			matched = token[0] == line[0]
+		}
+	}
+
+	if matched {
+		return match(line[1:], pattern[len(token):])
+	}
+
+	return false
+}
+
+func matchLine(line []byte, pattern string) (bool, error) {
+
+	for i := 0; i < len(line); i++ {
+		if match(line[i:], pattern) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
